@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Cpu, Battery, Activity, Sliders, Layers, Sparkles } from 'lucide-react';
-
+import novaPalmHero from '../assets/images/nova_palm_hero_1786449234092.jpg';
 export const NOVAProductViewer: React.FC = () => {
   const [activeHotspot, setActiveHotspot] = useState<number | null>(0);
 
@@ -50,7 +50,7 @@ export const NOVAProductViewer: React.FC = () => {
         {/* Product Image & Hotspots */}
         <div className="relative w-full lg:w-3/5 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 group">
           <img
-            src="/src/assets/images/nova_palm_hero_1786449234092.jpg"
+            src={novaPalmHero}
             alt="NOVA Palm Prosthetic Concept Product Visual"
             referrerPolicy="no-referrer"
             className="w-full h-[360px] sm:h-[420px] object-cover object-center"
