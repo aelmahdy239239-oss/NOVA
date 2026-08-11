@@ -1,6 +1,0 @@
-{
-  "name": "NOVA",
-  "description": "Smart Adaptive Prosthetic Palm Concept & Telemetry Platform",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
