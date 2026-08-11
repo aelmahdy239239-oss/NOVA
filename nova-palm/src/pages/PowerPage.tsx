@@ -113,6 +113,14 @@ export const PowerPage: React.FC<PowerPageProps> = ({ setActiveTab }) => {
             <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded border border-slate-800 text-[11px] text-slate-300 font-mono">
               3D CAD Model: Swappable Power Module & Charging Bay
             </div>
+            <div className="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 relative">
+  <img
+    src={novaModularPower}
+    alt="NOVA Swappable External Power Module CAD Render"
+    referrerPolicy="no-referrer"
+    className="w-full h-80 object-cover object-center"
+  />
+</div>
           </div>
 
           <div className="space-y-4">
