@@ -70,8 +70,8 @@ export const MicrobitMonitor: React.FC = () => {
     try {
       setMessage('Searching for micro:bit...');
 
-      const device = await bluetooth.requestDevice({
-        filters: [{ services: [UART_SERVICE] }],
+        const device = await bluetooth.requestDevice({
+        acceptAllDevices: true,
         optionalServices: [UART_SERVICE],
       });
 
