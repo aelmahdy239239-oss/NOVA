@@ -73,6 +73,8 @@ export const MicrobitMonitor: React.FC = () => {
       readerRef.current = null;
     }
   };
+  const tiltX = reading ? Math.max(-35, Math.min(35, reading.y / 25)) : 0;
+  const tiltY = reading ? Math.max(-35, Math.min(35, reading.x / 25)) : 0;
 
   return (
     <section className="bg-slate-900 border border-cyan-500/30 rounded-2xl p-5 space-y-4">
@@ -87,6 +89,31 @@ export const MicrobitMonitor: React.FC = () => {
       </div>
 
       <p className="text-sm text-cyan-300">{message}</p>
+            <div className="bg-slate-950 border border-cyan-500/20 rounded-2xl p-6 flex flex-col items-center gap-4">
+        <p className="text-sm font-semibold text-cyan-300">
+          LIVE MOTION VISUALIZER
+        </p>
+
+        <div className="w-40 h-40 flex items-center justify-center"
+          style={{ perspective: '500px' }}>
+          <div
+            className="w-28 h-28 rounded-2xl border-2 border-cyan-400 bg-gradient-to-br from-cyan-500 to-blue-900 flex items-center justify-center shadow-lg shadow-cyan-500/20"
+            style={{
+              transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
+              transition: 'transform 150ms ease-out'
+            }}
+          >
+            <span className="text-white text-3xl font-black">N</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-400">
+          X: {reading?.x ?? '--'} | Y: {reading?.y ?? '--'}
+        </p>
+        <p className="text-xs text-slate-500">
+          Move the micro:bit to control the visualizer
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
