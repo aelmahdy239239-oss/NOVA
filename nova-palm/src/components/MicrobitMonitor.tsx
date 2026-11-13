@@ -10,47 +10,32 @@ type Reading = {
   temperature: number;
 };
 
-const UART_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const UART_TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
-
 export const MicrobitMonitor: React.FC = () => {
   const [reading, setReading] = useState<Reading | null>(null);
   const [connected, setConnected] = useState(false);
   const [message, setMessage] = useState(
-    'Connect your micro:bit using Bluetooth.'
+    'Connect your micro:bit using USB.'
   );
 
-  const deviceRef = useRef<any>(null);
-  const characteristicRef = useRef<any>(null);
-  const handlerRef = useRef<any>(null);
+  const portRef = useRef<any>(null);
+  const readerRef = useRef<any>(null);
   const bufferRef = useRef('');
 
   const disconnect = async () => {
-    const device = deviceRef.current;
-    const characteristic = characteristicRef.current;
-
     try {
-      if (characteristic && handlerRef.current) {
-        characteristic.removeEventListener(
-          'characteristicvaluechanged',
-          handlerRef.current
-        );
-      }
-
-      if (characteristic) {
-        await characteristic.stopNotifications();
-      }
+      await readerRef.current?.cancel();
     } catch {}
 
     try {
-      if (device?.gatt?.connected) {
-        device.gatt.disconnect();
-      }
+      await readerRef.current?.releaseLock();
     } catch {}
 
-    deviceRef.current = null;
-    characteristicRef.current = null;
-    handlerRef.current = null;
+    try {
+      await portRef.current?.close();
+    } catch {}
+
+    readerRef.current = null;
+    portRef.current = null;
     bufferRef.current = '';
 
     setConnected(false);
@@ -58,52 +43,37 @@ export const MicrobitMonitor: React.FC = () => {
   };
 
   const connect = async () => {
-    const bluetooth = (navigator as any).bluetooth;
-
-    if (!bluetooth) {
+    if (!('serial' in navigator)) {
       setMessage(
-        'Bluetooth Web API is unavailable. Try a supported Chrome browser.'
+        'Web Serial is unavailable. Open NOVA in Chrome on your laptop.'
       );
       return;
     }
 
     try {
-      setMessage('Searching for micro:bit...');
+      setMessage('Select your micro:bit USB port...');
 
-        const device = await bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [UART_SERVICE],
-      });
+      const port = await (navigator as any).serial.requestPort();
+      portRef.current = port;
 
-      deviceRef.current = device;
+      await port.open({ baudRate: 115200 });
 
-      device.addEventListener('gattserverdisconnected', () => {
-        deviceRef.current = null;
-        characteristicRef.current = null;
-        handlerRef.current = null;
-        setConnected(false);
-        setMessage('Bluetooth disconnected.');
-      });
+      const decoder = new TextDecoderStream();
+      port.readable.pipeTo(decoder.writable).catch(() => {});
 
-      setMessage('Connecting to micro:bit...');
+      const reader = decoder.readable.getReader();
+      readerRef.current = reader;
 
-      const server = await device.gatt.connect();
-      const service = await server.getPrimaryService(UART_SERVICE);
-      const characteristic = await service.getCharacteristic(UART_TX);
+      setConnected(true);
+      setMessage('USB connected. Waiting for sensor data...');
 
-      characteristicRef.current = characteristic;
+      while (true) {
+        const { value, done } = await reader.read();
 
-      await characteristic.startNotifications();
+        if (done) break;
+        if (!value) continue;
 
-      const handler = (event: any) => {
-        const value = event.target.value as DataView;
-        const bytes = new Uint8Array(
-          value.buffer,
-          value.byteOffset,
-          value.byteLength
-        );
-
-        bufferRef.current += new TextDecoder().decode(bytes);
+        bufferRef.current += value;
 
         const lines = bufferRef.current.split(/\r?\n/);
         bufferRef.current = lines.pop() ?? '';
@@ -121,26 +91,21 @@ export const MicrobitMonitor: React.FC = () => {
           const [x, y, z, a, b, temperature] = values;
 
           setReading({ x, y, z, a, b, temperature });
-          setMessage('Live data received from micro:bit over Bluetooth.');
+          setMessage('Live data received from micro:bit over USB.');
         }
-      };
-
-      handlerRef.current = handler;
-
-      characteristic.addEventListener(
-        'characteristicvaluechanged',
-        handler
-      );
-
-      setConnected(true);
-      setMessage('Bluetooth connected. Waiting for sensor data...');
+      }
     } catch (error) {
       console.error(error);
-
       setConnected(false);
-      setMessage(
-        'Connection failed. Check Bluetooth, micro:bit power and UART service.'
-      );
+      setMessage('USB connection failed. Check the cable and port.');
+    } finally {
+      try {
+        readerRef.current?.releaseLock();
+      } catch {}
+
+      readerRef.current = null;
+      portRef.current = null;
+      setConnected(false);
     }
   };
 
@@ -160,7 +125,7 @@ export const MicrobitMonitor: React.FC = () => {
             BBC micro:bit Live Monitor
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Bluetooth LE sensor demonstration
+            USB serial sensor demonstration
           </p>
         </div>
 
