@@ -93,25 +93,85 @@ function HandModel({ curls }: { curls: number[] }) {
       <Finger x={-0.16} y={0.72} length={1.3} curl={curls[1]} color={metal} />
       <Finger x={0.16} y={0.72} length={1.4} curl={curls[2]} color={metal} />
       <Finger x={0.48} y={0.72} length={1.12} curl={curls[3]} color={metal} />
+      
+      {/* Articulated robotic thumb */}
+      <group
+        position={[-0.66, -0.42, 0.08]}
+        rotation={[0, 0, -0.95]}
+      >
+        {/* Thumb base joint */}
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[0.19, 24, 24]} />
+          <meshStandardMaterial
+            color="#22d3ee"
+            metalness={0.85}
+            roughness={0.2}
+          />
+        </mesh>
 
-      {/* Thumb */}
-      <group position={[-0.68, -0.45, 0]} rotation={[0, 0, -0.75]}>
-        <mesh position={[0, 0.25, 0]}>
-          <capsuleGeometry args={[0.13, 0.38, 6, 16]} />
-          <meshStandardMaterial color={metal} metalness={0.8} />
+        {/* Proximal thumb segment */}
+        <mesh position={[0, 0.34, 0]}>
+          <capsuleGeometry args={[0.14, 0.48, 8, 20]} />
+          <meshStandardMaterial
+            color="#94a3b8"
+            metalness={0.82}
+            roughness={0.24}
+          />
         </mesh>
-        <mesh position={[0, 0.55, 0]}>
-          <sphereGeometry args={[0.13, 16, 16]} />
-          <meshStandardMaterial color="#22d3ee" metalness={0.8} />
-        </mesh>
-        <group position={[0, 0.55, 0]} rotation={[curls[4], 0, 0]}>
-          <mesh position={[0, 0.22, 0]}>
-            <capsuleGeometry args={[0.12, 0.32, 6, 16]} />
-            <meshStandardMaterial color={metal} metalness={0.8} />
+
+        {/* Main thumb hinge */}
+        <group position={[0, 0.68, 0]}>
+          <mesh>
+            <sphereGeometry args={[0.155, 24, 24]} />
+            <meshStandardMaterial
+              color="#06b6d4"
+              metalness={0.9}
+              roughness={0.18}
+            />
+          </mesh>
+
+          {/* Distal segment: bends toward the index finger */}
+          <group rotation={[0, 0, -curls[4] * 0.85]}>
+            <mesh position={[0, 0.25, 0]}>
+              <capsuleGeometry args={[0.125, 0.34, 8, 20]} />
+              <meshStandardMaterial
+                color="#cbd5e1"
+                metalness={0.85}
+                roughness={0.2}
+              />
+            </mesh>
+
+            {/* Thumb tip */}
+            <mesh position={[0, 0.48, 0]}>
+              <sphereGeometry args={[0.14, 24, 24]} />
+              <meshStandardMaterial
+                color="#67e8f9"
+                metalness={0.75}
+                roughness={0.22}
+              />
+            </mesh>
+
+            {/* Soft contact pad */}
+            <mesh position={[0, 0.49, 0.105]}>
+              <sphereGeometry args={[0.105, 20, 20]} />
+              <meshStandardMaterial
+                color="#475569"
+                roughness={0.85}
+              />
+            </mesh>
+          </group>
+
+          {/* Visible hinge rings */}
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.17, 0.025, 10, 28]} />
+            <meshStandardMaterial
+              color="#67e8f9"
+              metalness={0.9}
+              roughness={0.2}
+            />
           </mesh>
         </group>
       </group>
-    </group>
   );
 }
 
