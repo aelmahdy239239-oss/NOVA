@@ -1,4 +1,5 @@
 import { MicrobitMonitor } from '../components/MicrobitMonitor';
+import { NOVAHand3D } from '../components/NOVAHand3D';
 import React, { useState } from 'react';
 import { SimulatedTelemetry } from '../types';
 import { DemoBanner } from '../components/DemoBanner';
@@ -130,7 +131,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         lastUpdated={telemetry.lastUpdated}
         onRefresh={onRefreshSimulation}
         onReset={onResetDemoData}
-      /> <MicrobitMonitor />
+        />
+        <MicrobitMonitor />
+        <NOVAHand3D />
 
       {/* Key Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
