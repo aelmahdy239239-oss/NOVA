@@ -164,8 +164,6 @@ useEffect(() => {
     setSamples(previous => previous.filter(sample => sample.id !== id));
   };
 
-  };
-
   const startMotionTrial = () => {
     if (motionStartedAt !== null) return;
 
