@@ -6,6 +6,7 @@ export type PageTab =
   | 'personalization'
   | 'power'
   | 'maintenance'
+  | 'research-lab'
   | 'about';
 
 export interface GripDistribution {

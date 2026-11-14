@@ -11,7 +11,8 @@ import {
   Menu, 
   X, 
   LayoutDashboard,
-  ShieldAlert
+  ShieldAlert,
+  FlaskConical
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -30,6 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'personalization', label: 'Personalization', icon: Sliders },
     { id: 'power', label: 'Power', icon: Zap },
     { id: 'maintenance', label: 'Maintenance', icon: Wrench },
+    { id: 'research-lab', label: 'Research Lab', icon: FlaskConical },
     { id: 'about', label: 'About', icon: Info },
   ];
 

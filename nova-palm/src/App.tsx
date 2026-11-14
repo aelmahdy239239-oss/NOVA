@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { ResearchLabPage } from './pages/ResearchLabPage';
 import { PageTab, SimulatedTelemetry } from './types';
 import { generateSimulatedTelemetry } from './services/simulation';
 import { Navbar } from './components/Navbar';
@@ -75,6 +76,9 @@ export default function App() {
 
           {activeTab === 'about' && (
             <AboutPage setActiveTab={changeTab} />
+          )}
+          {activeTab === 'research-lab' && (
+            <ResearchLabPage />
           )}
         </main>
       </div>
