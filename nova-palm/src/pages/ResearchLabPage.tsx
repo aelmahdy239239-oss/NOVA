@@ -15,8 +15,17 @@ type RecordedSample = {
   peak: number;
   values: number[];
 };
+type MotionTrial = {
+  id: string;
+  label: string;
+  startedAt: string;
+  endedAt: string;
+  durationSeconds: number;
+  notes: string;
+};
 
 const STORAGE_KEY = 'nova-research-samples-v1';
+const MOTION_STORAGE_KEY = 'nova-motion-trials-v1';
 
 const modules = [
   { id: 'signal', number: '01', title: 'Signal Acquisition', subtitle: 'EMG signal input', icon: Activity, description: 'Acquire and visualize muscle activity signals.' },
@@ -48,6 +57,19 @@ export const ResearchLabPage: React.FC = () => {
     }
   });
   const [savedNotice, setSavedNotice] = useState(false);
+  const [motionLabel, setMotionLabel] = useState('Rest');
+const [motionNotes, setMotionNotes] = useState('');
+const [motionStartedAt, setMotionStartedAt] = useState<number | null>(null);
+const [motionElapsed, setMotionElapsed] = useState(0);
+
+const [motionTrials, setMotionTrials] = useState<MotionTrial[]>(() => {
+  try {
+    const saved = localStorage.getItem(MOTION_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
 
   useEffect(() => {
     if (!running) return;
@@ -59,13 +81,39 @@ export const ResearchLabPage: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [running, speed]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(samples));
-    } catch {
-      console.warn('Could not save NOVA samples in browser storage.');
-    }
-  }, [samples]);
+// Save signal samples
+useEffect(() => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(samples));
+  } catch {
+    console.warn('Could not save NOVA samples in browser storage.');
+  }
+}, [samples]);
+
+// Save motion trials
+useEffect(() => {
+  try {
+    localStorage.setItem(
+      MOTION_STORAGE_KEY,
+      JSON.stringify(motionTrials)
+    );
+  } catch {
+    console.warn('Could not save NOVA motion trials.');
+  }
+}, [motionTrials]);
+
+// Motion recording timer
+useEffect(() => {
+  if (motionStartedAt === null) return;
+
+  const timer = window.setInterval(() => {
+    setMotionElapsed(
+      Math.floor((Date.now() - motionStartedAt) / 1000)
+    );
+  }, 250);
+
+  return () => window.clearInterval(timer);
+}, [motionStartedAt]);
 
   const signalData = useMemo(() => {
     return Array.from({ length: 120 }, (_, i) => {
@@ -116,49 +164,35 @@ export const ResearchLabPage: React.FC = () => {
     setSamples(previous => previous.filter(sample => sample.id !== id));
   };
 
-  const exportDataset = () => {
-    if (samples.length === 0) return;
+  };
 
-    const headers = [
-      'Sample ID',
-      'Timestamp',
-      'Movement Label',
-      'Source',
-      'RMS',
-      'Peak',
-      'Signal Values'
-    ];
+  const startMotionTrial = () => {
+    if (motionStartedAt !== null) return;
 
-    const rows = samples.map(sample => [
-      sample.id,
-      sample.timestamp,
-      sample.label,
-      sample.source,
-      sample.rms,
-      sample.peak,
-      sample.values.join(';')
-    ]);
+    setMotionElapsed(0);
+    setMotionStartedAt(Date.now());
+  };
 
-    const escapeCsv = (value: string | number) =>
-      `"${String(value).replace(/"/g, '""')}"`;
+  const finishMotionTrial = () => {
+    if (motionStartedAt === null) return;
 
-    const csv = [
-      headers.map(escapeCsv).join(','),
-      ...rows.map(row => row.map(escapeCsv).join(','))
-    ].join('\n');
+    const endedAt = Date.now();
 
-    const blob = new Blob(['\uFEFF' + csv], {
-      type: 'text/csv;charset=utf-8;'
-    });
+    const newTrial: MotionTrial = {
+      id: `MOTION-${Date.now()}`,
+      label: motionLabel,
+      startedAt: new Date(motionStartedAt).toISOString(),
+      endedAt: new Date(endedAt).toISOString(),
+      durationSeconds: Number(
+        ((endedAt - motionStartedAt) / 1000).toFixed(2)
+      ),
+      notes: motionNotes.trim()
+    };
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'NOVA_synthetic_dataset.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setMotionTrials(previous => [newTrial, ...previous]);
+    setMotionStartedAt(null);
+    setMotionElapsed(0);
+    setMotionNotes('');
   };
 
   return (
@@ -488,28 +522,164 @@ export const ResearchLabPage: React.FC = () => {
         </section>
       )}
 
-      {/* Modules not implemented yet */}
-      {(active === 'motion' || active === 'training') && (
+      
+      {/* Motion Recording */}
+      {active === 'motion' && (
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 sm:p-8 space-y-6">
+          <div className="flex items-center gap-4 border-b border-slate-800 pb-5">
+            <div className="rounded-xl bg-cyan-500/10 p-3">
+              <Camera className="w-6 h-6 text-cyan-300" />
+            </div>
+            <div>
+              <p className="text-xs font-mono text-cyan-400">MODULE 02</p>
+              <h2 className="text-xl font-bold text-white">Motion Recording</h2>
+              <p className="text-xs text-slate-400">Manual movement trial recording</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="text-sm font-semibold text-amber-300">Manual Recording Mode</p>
+            <p className="mt-1 text-xs leading-6 text-slate-400">
+              This module records manually selected movement labels and trial
+              duration. It does not use a camera or automatically verify movement.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+              <p className="text-xs text-slate-500">Trial Status</p>
+              <p className={`mt-2 text-lg font-bold ${motionStartedAt !== null ? 'text-emerald-400' : 'text-slate-300'}`}>
+                {motionStartedAt !== null ? 'Recording' : 'Ready'}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+              <p className="text-xs text-slate-500">Elapsed Time</p>
+              <p className="mt-2 text-2xl font-mono font-bold text-cyan-300">
+                {Math.floor(motionElapsed / 60).toString().padStart(2, '0')}:
+                {(motionElapsed % 60).toString().padStart(2, '0')}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2">
+              Movement Label
+            </label>
+            <select
+              value={motionLabel}
+              onChange={event => setMotionLabel(event.target.value)}
+              disabled={motionStartedAt !== null}
+              className="w-full sm:max-w-sm rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white disabled:opacity-50"
+            >
+              {movementLabels.map(label => (
+                <option key={label} value={label}>{label}</option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-slate-500">
+              Choose the intended movement before starting the trial.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2">
+              Trial Notes
+            </label>
+            <textarea
+              value={motionNotes}
+              onChange={event => setMotionNotes(event.target.value)}
+              disabled={motionStartedAt !== null}
+              placeholder="Add an optional note about this trial..."
+              rows={3}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white placeholder:text-slate-600 disabled:opacity-50"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {motionStartedAt === null ? (
+              <button
+                onClick={startMotionTrial}
+                className="flex items-center gap-2 rounded-lg bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400"
+              >
+                <Play className="w-4 h-4" />
+                Start Trial
+              </button>
+            ) : (
+              <button
+                onClick={finishMotionTrial}
+                className="flex items-center gap-2 rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Finish & Save Trial
+              </button>
+            )}
+          </div>
+
+          <div className="border-t border-slate-800 pt-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-bold text-white">Recorded Trials</h3>
+              <span className="rounded-lg bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300">
+                {motionTrials.length} Trials
+              </span>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-800">
+              <table className="w-full min-w-[650px] text-left text-sm">
+                <thead className="bg-slate-950 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="p-4">Trial ID</th>
+                    <th className="p-4">Movement</th>
+                    <th className="p-4">Duration</th>
+                    <th className="p-4">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {motionTrials.map(trial => (
+                    <tr key={trial.id} className="text-slate-300">
+                      <td className="p-4 font-mono text-xs">{trial.id}</td>
+                      <td className="p-4 font-semibold text-white">{trial.label}</td>
+                      <td className="p-4 font-mono">{trial.durationSeconds.toFixed(2)} s</td>
+                      <td className="p-4 text-xs">{trial.notes || '—'}</td>
+                    </tr>
+                  ))}
+                  {motionTrials.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-slate-500">
+                        No motion trials recorded yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Model Training & Evaluation */}
+      {active === 'training' && (
         <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8">
           <div className="flex items-center gap-4 border-b border-slate-800 pb-5">
             <div className="rounded-xl bg-cyan-500/10 p-3">
-              <Icon className="w-6 h-6 text-cyan-300" />
+              <BrainCircuit className="w-6 h-6 text-cyan-300" />
             </div>
             <div>
-              <p className="text-xs font-mono text-cyan-400">MODULE {selected.number}</p>
-              <h2 className="text-xl font-bold text-white">{selected.title}</h2>
-              <p className="text-xs text-slate-400">{selected.subtitle}</p>
+              <p className="text-xs font-mono text-cyan-400">MODULE 04</p>
+              <h2 className="text-xl font-bold text-white">Model Training & Evaluation</h2>
+              <p className="text-xs text-slate-400">Pattern recognition</p>
             </div>
           </div>
           <div className="mt-6">
             <h3 className="font-bold text-white">Module objective</h3>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-300">{selected.description}</p>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-300">
+              Prepare labeled signal data for future classifier training and
+              evaluate model performance using appropriate validation methods.
+            </p>
           </div>
-          <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-4">
-            <p className="text-sm font-semibold text-cyan-300">Module status</p>
+          <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="text-sm font-semibold text-amber-300">Not connected yet</p>
             <p className="mt-2 text-xs leading-6 text-slate-400">
-              This module is not implemented yet. It will be connected to the
-              sample collection workflow in a future development step.
+              No trained classifier or verified real EMG dataset is available.
+              Model evaluation will be implemented after reliable data collection.
             </p>
           </div>
         </section>
