@@ -1,5 +1,4 @@
 import { MicrobitMonitor } from '../components/MicrobitMonitor';
-import { NOVAHand3D } from '../components/NOVAHand3D';
 import React, { useState } from 'react';
 import { SimulatedTelemetry } from '../types';
 import { DemoBanner } from '../components/DemoBanner';
