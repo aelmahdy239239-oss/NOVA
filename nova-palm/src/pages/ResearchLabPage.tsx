@@ -164,6 +164,67 @@ useEffect(() => {
     setSamples(previous => previous.filter(sample => sample.id !== id));
   };
 
+  const exportMotionTrials = () => {
+    if (motionTrials.length === 0) return;
+
+    const headers = [
+      'Trial ID',
+      'Movement',
+      'Started At',
+      'Ended At',
+      'Duration (seconds)',
+      'Notes'
+    ];
+
+    const escapeCsv = (value: string | number) =>
+      `"${String(value).replace(/"/g, '""')}"`;
+
+    const rows = motionTrials.map(trial => [
+      trial.id,
+      trial.label,
+      trial.startedAt,
+      trial.endedAt,
+      trial.durationSeconds,
+      trial.notes
+    ]);
+
+    const csv = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map(row => row.map(escapeCsv).join(','))
+    ].join('\n');
+
+    const blob = new Blob(
+      ['\uFEFF' + csv],
+      { type: 'text/csv;charset=utf-8;' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `nova-motion-trials-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  
+const deleteMotionTrial = (id: string) => {
+  setMotionTrials(previous =>
+    previous.filter(trial => trial.id !== id)
+  );
+};
+
+const clearMotionTrials = () => {
+  if (motionStartedAt !== null) return;
+
+  if (window.confirm('Delete all recorded motion trials? This cannot be undone.')) {
+    setMotionTrials([]);
+  }
+};
+
   const startMotionTrial = () => {
     if (motionStartedAt !== null) return;
 
@@ -610,15 +671,35 @@ useEffect(() => {
                 Finish & Save Trial
               </button>
             )}
+
+            <div className="flex flex-wrap gap-3">
+            <button
+                onClick={exportMotionTrials}
+                disabled={motionTrials.length === 0}
+                className="flex items-center gap-2 rounded-lg bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+                <Download className="w-4 h-4" />
+                Export Trials CSV
+            </button>
+            </div>
+
           </div>
 
           <div className="border-t border-slate-800 pt-5 space-y-4">
+            
             <div className="flex items-center justify-between gap-3">
-              <h3 className="font-bold text-white">Recorded Trials</h3>
-              <span className="rounded-lg bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300">
-                {motionTrials.length} Trials
-              </span>
+            <h3 className="font-bold text-white">Recorded Trials</h3>
+
+            <button
+                onClick={clearMotionTrials}
+                disabled={motionTrials.length === 0 || motionStartedAt !== null}
+                className="flex items-center gap-2 rounded-lg border border-red-500/30 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+                <Trash2 className="w-4 h-4" />
+                Clear All
+            </button>
             </div>
+
 
             <div className="overflow-x-auto rounded-xl border border-slate-800">
               <table className="w-full min-w-[650px] text-left text-sm">
@@ -628,6 +709,7 @@ useEffect(() => {
                     <th className="p-4">Movement</th>
                     <th className="p-4">Duration</th>
                     <th className="p-4">Notes</th>
+                    <th className="px-4 py-3 text-left">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -637,6 +719,17 @@ useEffect(() => {
                       <td className="p-4 font-semibold text-white">{trial.label}</td>
                       <td className="p-4 font-mono">{trial.durationSeconds.toFixed(2)} s</td>
                       <td className="p-4 text-xs">{trial.notes || '—'}</td>
+
+                      <td className="px-4 py-3">
+                      <button
+                         onClick={() => deleteMotionTrial(trial.id)}
+                            className="rounded-lg p-2 text-red-400 hover:bg-red-500/10"
+                            title="Delete trial"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        </td>
+
                     </tr>
                   ))}
                   {motionTrials.length === 0 && (
